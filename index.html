@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title> Modern Snake Adventure</title>
+    <style>
+        body {
+            background-color: #2d5a3f;
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding-top: 20px;
+        }
+        h1 { color: white; }
+        .score {
+            color: white;
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+        canvas {
+            background-color: #1a3528;
+            border: 4px solid white;
+        }
+        button {
+            padding: 15px 40px;
+            font-size: 22px;
+            font-weight: bold;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        button:hover { background-color: #45a049; }
+        .screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .hidden { display: none !important; }
+        .controls {
+            margin-top: 20px;
+        }
+        .ctrl-btn {
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            padding: 0;
+            background-color: #3a7d44;
+        }
+        .ctrl-btn:hover { background-color: #4CAF50; }
+    </style>
+</head>
+<body>
+
+    <div id="startScreen" class="screen">
+        <h1 style="font-size: 48px;"> Modern Snake Adventure</h1>
+        <button onclick="startGame()">START GAME</button>
+    </div>
+
+    <div id="gameOverScreen" class="screen hidden">
+        <h1 style="font-size: 48px;">GAME OVER!</h1>
+        <p id="finalScore" style="color:white; font-size: 24px;"></p>
+        <button onclick="restartGame()">PLAY AGAIN</button>
+    </div>
+
+    <h1> Modern Snake Adventure</h1>
+    <div class="score">
+        Score: <span id="score">0</span> | High Score: <span id="highScore">0</span>
+    </div>
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+    
+    <div class="controls">
+        <div><button class="ctrl-btn" onclick="setDir('UP')">↑</button></div>
+        <div>
+            <button class="ctrl-btn" onclick="setDir('LEFT')">←</button>
+            <button class="ctrl-btn" onclick="setDir('DOWN')">↓</button>
+            <button class="ctrl-btn" onclick="setDir('RIGHT')">→</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const box = 20;
+        
+        let snake = [{x: 10*box, y: 10*box}];
+        let dir = "RIGHT";
+        let nextDir = "RIGHT";
+        let food = {x: Math.floor(Math.random()*20)*box, y: Math.floor(Math.random()*20)*box};
+        let score = 0;
+        let highScore = localStorage.getItem('highScore') || 0;
+        let speed = 150;
+        let gameLoop;
+        let running = false;
+
+        document.getElementById('highScore').textContent = highScore;
+        document.addEventListener("keydown", handleKey);
+
+        function setDir(newDir) {
+            if(newDir==='LEFT' && dir!=='RIGHT') nextDir='LEFT';
+            if(newDir==='UP' && dir!=='DOWN') nextDir='UP';
+            if(newDir==='RIGHT' && dir!=='LEFT') nextDir='RIGHT';
+            if(newDir==='DOWN' && dir!=='UP') nextDir='DOWN';
+        }
+
+        function handleKey(e) {
+            if(e.key==="ArrowLeft") setDir('LEFT');
+            else if(e.key==="ArrowUp") setDir('UP');
+            else if(e.key==="ArrowRight") setDir('RIGHT');
+            else if(e.key==="ArrowDown") setDir('DOWN');
+        }
+
+        function draw() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            dir = nextDir;
+
+            for(let i=0; i<snake.length; i++) {
+                ctx.fillStyle = i===0 ? '#90EE90' : '#3a8f5c';
+                ctx.fillRect(snake[i].x, snake[i].y, box, box);
+            }
+
+            ctx.fillStyle = '#ff4444';
+            ctx.beginPath();
+            ctx.arc(food.x+10, food.y+10, 10, 0, Math.PI*2);
+            ctx.fill();
+
+            let hx = snake[0].x;
+            let hy = snake[0].y;
+            if(dir==="LEFT") hx -= box;
+            if(dir==="UP") hy -= box;
+            if(dir==="RIGHT") hx += box;
+            if(dir==="DOWN") hy += box;
+
+            if(hx === food.x && hy === food.y) {
+                score += 10;
+                document.getElementById('score').textContent = score;
+                food = {x: Math.floor(Math.random()*20)*box, y: Math.floor(Math.random()*20)*box};
+                if(score % 50 === 0 && speed > 60) {
+                    speed -= 15;
+                    clearInterval(gameLoop);
+                    gameLoop = setInterval(draw, speed);
+                }
+            } else {
+                snake.pop();
+            }
+
+            if(hx<0 || hx>=canvas.width || hy<0 || hy>=canvas.height) { gameOver(); return; }
+
+            for(let i=1; i<snake.length; i++) {
+                if(snake[i].x===hx && snake[i].y===hy) { gameOver(); return; }
+            }
+
+            snake.unshift({x:hx, y:hy});
+        }
+
+        function gameOver() {
+            running = false;
+            clearInterval(gameLoop);
+            if(score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
+                document.getElementById('highScore').textContent = highScore;
+            }
+            document.getElementById('finalScore').textContent = "Score: " + score;
+            document.getElementById('gameOverScreen').classList.remove('hidden');
+        }
+
+        function startGame() {
+            document.getElementById('startScreen').classList.add('hidden');
+            resetGame();
+            running = true;
+            gameLoop = setInterval(draw, speed);
+        }
+
+        function restartGame() {
+            document.getElementById('gameOverScreen').classList.add('hidden');
+            resetGame();
+            running = true;
+            gameLoop = setInterval(draw, speed);
+        }
+
+        function resetGame() {
+            snake = [{x: 10*box, y: 10*box}];
+            dir = "RIGHT";
+            nextDir = "RIGHT";
+            score = 0;
+            speed = 150;
+            document.getElementById('score').textContent = "0";
+            food = {x: Math.floor(Math.random()*20)*box, y: Math.floor(Math.random()*20)*box};
+        }
+    </script>
+</body>
+</html>
