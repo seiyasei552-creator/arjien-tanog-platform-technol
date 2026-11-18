@@ -104,6 +104,34 @@
         document.getElementById('highScore').textContent = highScore;
         document.addEventListener("keydown", handleKey);
 
+        function playEatSound() {
+            const a = new (window.AudioContext || window.webkitAudioContext)();
+            const o = a.createOscillator();
+            const g = a.createGain();
+            o.connect(g);
+            g.connect(a.destination);
+            o.frequency.value = 523;
+            o.type = "sine";
+            g.gain.value = 0.15;
+            o.start();
+            g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.15);
+            o.stop(a.currentTime + 0.15);
+        }
+
+        function playGameOverSound() {
+            const a = new (window.AudioContext || window.webkitAudioContext)();
+            const o = a.createOscillator();
+            const g = a.createGain();
+            o.connect(g);
+            g.connect(a.destination);
+            o.frequency.value = 200;
+            o.type = "sawtooth";
+            g.gain.value = 0.15;
+            o.start();
+            g.gain.exponentialRampToValueAtTime(0.001, a.currentTime + 0.4);
+            o.stop(a.currentTime + 0.4);
+        }
+
         function setDir(newDir) {
             if(newDir==='LEFT' && dir!=='RIGHT') nextDir='LEFT';
             if(newDir==='UP' && dir!=='DOWN') nextDir='UP';
@@ -142,6 +170,7 @@
             if(hx === food.x && hy === food.y) {
                 score += 10;
                 document.getElementById('score').textContent = score;
+                playEatSound();
                 food = {x: Math.floor(Math.random()*20)*box, y: Math.floor(Math.random()*20)*box};
                 if(score % 50 === 0 && speed > 60) {
                     speed -= 15;
@@ -164,6 +193,7 @@
         function gameOver() {
             running = false;
             clearInterval(gameLoop);
+            playGameOverSound();
             if(score > highScore) {
                 highScore = score;
                 localStorage.setItem('highScore', highScore);
